@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BankA.Api/BankA.Api.csproj" />
+  <Project Path="BankB.Api/BankB.Api.csproj" />
+  <Project Path="Coordinator.Api/Coordinator.Api.csproj" />
+</Solution>
