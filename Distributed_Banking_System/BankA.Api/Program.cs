@@ -12,6 +12,9 @@ builder.Services.AddOpenApi();
 // data
 builder.Services.AddSingleton<BankData>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // services
 builder.Services.AddSingleton<BankService>();
 
@@ -21,6 +24,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
