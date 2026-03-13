@@ -1,0 +1,13 @@
+﻿In this Bank System the flow of processing of transaction:
+	- User click button to transfer money (send JSON)
+
+	- Controller receive the request and pass to Service
+		+ the thing controller received is called PrepareRequest, it is a DTO (Data Transfer Object) that only contains the data from the request
+		+ After DTO, Controller will call Service, and pass the DTO to Service, and Service will do the processing
+
+	- Service will do the processing which means:
+		+ Service will call Repository to get the data from database, and Repository will return the data to Service
+		+ Service will do the business logic, and then call Repository again to update the data in database, and Repository will return the result to Service
+		+ After that, Service will return the result to Controller, and Controller will return the response to User
+
+	- Controller receive the Response from Service, and then return the response to User
