@@ -6,7 +6,7 @@ builder.Services.AddControllers();
 
 // Add Bank services
 builder.Services.AddSingleton<BankB.Api.Data.BankData>();
-builder.Services.AddScoped<BankB.Api.Services.BankService>();
+builder.Services.AddSingleton<BankB.Api.Services.BankService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
