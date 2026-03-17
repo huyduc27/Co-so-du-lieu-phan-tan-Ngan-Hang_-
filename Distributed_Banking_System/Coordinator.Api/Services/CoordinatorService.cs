@@ -1,43 +1,26 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
+using Coordinator.Api.Models;
+using Coordinator.Api.Requests;
+using Coordinator.Api.Responses;
+using Coordinator.Api.Data;
 
 namespace Coordinator.Api.Services;
-
-public enum TxnState
-{
-    Init,
-    Prepared,
-    Committed,
-    Aborted
-}
-
-public class TxnRecord
-{
-    public string TransactionId { get; set; } = Guid.NewGuid().ToString();
-    public string FromAccount { get; set; } = "";
-    public string ToAccount { get; set; } = "";
-    public decimal Amount { get; set; }
-    public TxnState Status { get; set; } = TxnState.Init;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
-public record PrepareRequest(string AccountId, string TransactionId, decimal Amount);
-public record TransactionRequest(string TransactionId);
-public record TransferRequest(string FromAccount, string ToAccount, decimal Amount, bool SimulateNetworkLoss = false);
 
 public class CoordinatorService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ConcurrentDictionary<string, TxnRecord> _transactions = new();
+    private readonly CoordinatorData _data;
 
-    public CoordinatorService(IHttpClientFactory httpClientFactory)
+    public CoordinatorService(IHttpClientFactory httpClientFactory, CoordinatorData data)
     {
         _httpClientFactory = httpClientFactory;
+        _data = data;
     }
 
-    public ConcurrentDictionary<string, TxnRecord> GetTransactions() => _transactions;
+    public ConcurrentDictionary<string, TxnRecord> GetTransactions() => _data.Transactions;
 
-    public async Task<string> ProcessTransferAsync(TransferRequest request)
+    public async Task<CoordinatorResponse> ProcessTransferAsync(TransferRequest request)
     {
         var txnId = Guid.NewGuid().ToString();
         var txn = new TxnRecord
@@ -49,7 +32,7 @@ public class CoordinatorService
             Status = TxnState.Init
         };
 
-        _transactions.TryAdd(txnId, txn);
+        _data.Transactions.TryAdd(txnId, txn);
 
         var bankAClient = _httpClientFactory.CreateClient("BankA");
         var bankBClient = _httpClientFactory.CreateClient("BankB");
@@ -83,7 +66,7 @@ public class CoordinatorService
                 if (commitA.IsSuccessStatusCode && commitB.IsSuccessStatusCode)
                 {
                     txn.Status = TxnState.Committed;
-                    return $"Giao dịch {txnId} thành công!";
+                    return new CoordinatorResponse { Success = true, Message = $"Giao dịch {txnId} thành công!" };
                 }
                 else
                 {
@@ -95,7 +78,7 @@ public class CoordinatorService
 
                     txn.Status = TxnState.Aborted;
                     await RollbackBothAsync(bankAClient, bankBClient, txnId);
-                    return $"Giao dịch {txnId} lỗi trong khi Commit (Failed at: {failedBanks.Trim()}). Đã Rollback.";
+                    return new CoordinatorResponse { Success = false, Message = $"Giao dịch {txnId} lỗi trong khi Commit (Failed at: {failedBanks.Trim()}). Đã Rollback." };
                 }
             }
             else
@@ -107,13 +90,13 @@ public class CoordinatorService
 
                 txn.Status = TxnState.Aborted;
                 await RollbackBothAsync(bankAClient, bankBClient, txnId);
-                return $"Giao dịch {txnId} thất bại tại Phase 1 (Failed at: {failedBanks.Trim()}). Đã Rollback.";
+                return new CoordinatorResponse { Success = false, Message = $"Giao dịch {txnId} thất bại tại Phase 1 (Failed at: {failedBanks.Trim()}). Đã Rollback." };
             }
         }
         catch (Exception ex)
         {
             // Gặp lỗi mạng hoặc exception -> Giao dịch đang treo, RecoveryWorker sẽ lo việc Rollback
-            return $"Lỗi hệ thống trong giao dịch {txnId}: {ex.Message}";
+            return new CoordinatorResponse { Success = false, Message = $"Lỗi hệ thống trong giao dịch {txnId}: {ex.Message}" };
         }
     }
 

@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using Coordinator.Api.Models;
+using Coordinator.Api.Requests;
 using Coordinator.Api.Services;
 
 namespace Coordinator.Api.Workers;

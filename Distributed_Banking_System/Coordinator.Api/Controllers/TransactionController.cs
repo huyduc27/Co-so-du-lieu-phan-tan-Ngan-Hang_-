@@ -1,4 +1,6 @@
 using Coordinator.Api.Services;
+using Coordinator.Api.Requests;
+using Coordinator.Api.Responses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coordinator.Api.Controllers;
@@ -18,12 +20,18 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
         var result = await _coordinatorService.ProcessTransferAsync(request);
-        return Ok(new { message = result });
+        return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("status")]
     public IActionResult GetStatus()
     {
-        return Ok(_coordinatorService.GetTransactions().Values);
+        var trans = _coordinatorService.GetTransactions().Values;
+        return Ok(new CoordinatorResponse
+        {
+            Success = true,
+            Message = "Retrieved transactions successfully",
+            Data = trans
+        });
     }
 }
