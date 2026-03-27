@@ -23,8 +23,6 @@ public class RecoveryWorker : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var txns = _coordinatorService.GetTransactions();
-            var bankAClient = _httpClientFactory.CreateClient("BankA");
-            var bankBClient = _httpClientFactory.CreateClient("BankB");
 
             // Tìm các giao dịch nào đang ở trạng thái Prepared quá 15 giây (bị kẹt/treo)
             var stuckTxns = txns.Values
@@ -34,18 +32,19 @@ public class RecoveryWorker : BackgroundService
             foreach (var txn in stuckTxns)
             {
                 _logger.LogWarning($"Phát hiện giao dịch {txn.TransactionId} bị treo quá lâu. Đang Phục Hồi (Rollback)...");
-                
+
                 var rollbackReq = new TransactionRequest(txn.TransactionId);
+
+                var senderClient = _httpClientFactory.CreateClient(txn.FromBankCode);
+                var receiverClient = _httpClientFactory.CreateClient(txn.ToBankCode);
 
                 try
                 {
-                    // Rollback Bank A (Hoàn tiền)
-                    await bankAClient.PostAsJsonAsync("/Bank/rollback", rollbackReq);
-                    // Rollback Bank B (Hủy giao dịch bên nhận)
-                    await bankBClient.PostAsJsonAsync("/Bank/rollback", rollbackReq);
+                    await senderClient.PostAsJsonAsync("/Bank/rollback", rollbackReq);
+                    await receiverClient.PostAsJsonAsync("/Bank/rollback", rollbackReq);
 
                     txn.Status = TxnState.Aborted;
-                    _logger.LogInformation($"Giao dịch {txn.TransactionId} đã phục hồi thành công (Hoàn tiền cho Bank A).");
+                    _logger.LogInformation($"Giao dịch {txn.TransactionId} đã phục hồi thành công (Hoàn tiền).");
                 }
                 catch (Exception ex)
                 {

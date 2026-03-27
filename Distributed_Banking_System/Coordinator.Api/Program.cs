@@ -1,6 +1,5 @@
 using Coordinator.Api.Services;
 using Coordinator.Api.Workers;
-using Coordinator.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +15,6 @@ builder.Services.AddHttpClient("BankB", client =>
     client.BaseAddress = new Uri("https://localhost:7016/"); // Dùng http, không dùng https
 });
 // Dang ky Service
-builder.Services.AddSingleton<CoordinatorData>();
 builder.Services.AddSingleton<CoordinatorService>();
 builder.Services.AddHostedService<RecoveryWorker>();
 

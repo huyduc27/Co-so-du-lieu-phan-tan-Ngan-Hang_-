@@ -1,17 +1,16 @@
 using Coordinator.Api.Services;
 using Coordinator.Api.Requests;
-using Coordinator.Api.Responses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Coordinator.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class TransactionController : ControllerBase
+public class CoordinatorController : ControllerBase
 {
     private readonly CoordinatorService _coordinatorService;
 
-    public TransactionController(CoordinatorService coordinatorService)
+    public CoordinatorController(CoordinatorService coordinatorService)
     {
         _coordinatorService = coordinatorService;
     }
@@ -20,18 +19,17 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
         var result = await _coordinatorService.ProcessTransferAsync(request);
-        return result.Success ? Ok(result) : BadRequest(result);
+        if (result.Contains("thành công"))
+        {
+            return Ok(new { success = true, message = result });
+        }
+        return BadRequest(new { success = false, message = result });
     }
 
     [HttpGet("status")]
     public IActionResult GetStatus()
     {
         var trans = _coordinatorService.GetTransactions().Values;
-        return Ok(new CoordinatorResponse
-        {
-            Success = true,
-            Message = "Retrieved transactions successfully",
-            Data = trans
-        });
+        return Ok(trans);
     }
 }
