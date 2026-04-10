@@ -42,5 +42,13 @@ namespace BankB.Api.Controllers
             var response = _bankService.Rollback(req.TransactionId);
             return response.Success ? Ok(response) : BadRequest(response);
         }
+
+        // ── GET /Bank/pending-transactions ─────────────
+        [HttpGet("pending-transactions")]
+        public IActionResult GetPendingTransactions()
+        {
+            var pending = _bankService.GetPendingTransactions();
+            return Ok(pending);
+        }
     }
 }

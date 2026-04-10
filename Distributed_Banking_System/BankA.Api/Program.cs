@@ -1,22 +1,26 @@
 using BankA.Api.Data;
+using BankA.Api.Repositories;
 using BankA.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// data
-builder.Services.AddSingleton<BankData>();
+// Database
+builder.Services.AddDbContext<BankDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("BankADb")));
+
+// Repositories
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// services
-builder.Services.AddSingleton<BankService>();
+// Services
+builder.Services.AddScoped<BankService>();
 
 var app = builder.Build();
 

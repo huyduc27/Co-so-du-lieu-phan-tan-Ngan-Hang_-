@@ -1,6 +1,143 @@
-@Coordinator.Api_HostAddress = http://localhost:5125
+@Coordinator_Host = https://localhost:7041
+@BankA_Host = https://localhost:7298
+@BankB_Host = https://localhost:7016
 
-GET {{Coordinator.Api_HostAddress}}/weatherforecast/
+##########################################################
+# BUOC 0: KIEM TRA SO DU BAN DAU
+##########################################################
+
+### 0a. Xem so du BankA - A001 (ban dau: 100,000)
+GET {{BankA_Host}}/Bank/Balance/A001
 Accept: application/json
 
-###
+### 0b. Xem so du BankA - A002 (ban dau: 100,000)
+GET {{BankA_Host}}/Bank/Balance/A002
+Accept: application/json
+
+### 0c. Xem so du BankB - B001 (ban dau: 100,000)
+GET {{BankB_Host}}/Bank/Balance/B001
+Accept: application/json
+
+### 0d. Xem so du BankB - B002 (ban dau: 100,000)
+GET {{BankB_Host}}/Bank/Balance/B002
+Accept: application/json
+
+##########################################################
+# TEST CASE 1: CHUYEN TIEN THANH CONG
+# A001 (BankA) -> B001 (BankB): 50,000d
+# Ket qua mong doi: A001 giam 50k, B001 tang 50k
+##########################################################
+
+### 1. Chuyen 50,000d tu A001 -> B001
+POST {{Coordinator_Host}}/Transfer
+Content-Type: application/json
+
+{
+  "fromAccountId": "A001",
+  "toAccountId": "B001",
+  "amount": 50000
+}
+
+### 1a. Kiem tra so du A001 sau khi chuyen (mong doi: 50,000)
+GET {{BankA_Host}}/Bank/Balance/A001
+Accept: application/json
+
+### 1b. Kiem tra so du B001 sau khi chuyen (mong doi: 150,000)
+GET {{BankB_Host}}/Bank/Balance/B001
+Accept: application/json
+
+##########################################################
+# TEST CASE 2: KHONG DU TIEN -> TU DONG ROLLBACK
+# A001 chi con 50,000d, chuyen 999,999d -> THAT BAI
+# Ket qua mong doi: So du khong doi
+##########################################################
+
+### 2. Chuyen 999,999d tu A001 -> B001 (se that bai)
+POST {{Coordinator_Host}}/Transfer
+Content-Type: application/json
+
+{
+  "fromAccountId": "A001",
+  "toAccountId": "B001",
+  "amount": 999999
+}
+
+### 2a. Kiem tra A001 van con 50,000 (khong bi tru)
+GET {{BankA_Host}}/Bank/Balance/A001
+Accept: application/json
+
+##########################################################
+# TEST CASE 3: TAI KHOAN KHONG TON TAI -> ROLLBACK
+# Chuyen tien den B999 (khong ton tai)
+# Ket qua mong doi: BankA rollback, so du khong doi
+##########################################################
+
+### 3. Chuyen den tai khoan khong ton tai B999
+POST {{Coordinator_Host}}/Transfer
+Content-Type: application/json
+
+{
+  "fromAccountId": "A001",
+  "toAccountId": "B999",
+  "amount": 10000
+}
+
+### 3a. Kiem tra A001 van khong doi
+GET {{BankA_Host}}/Bank/Balance/A001
+Accept: application/json
+
+##########################################################
+# TEST CASE 4: GIA LAP SU CO MANG + RECOVERY TU DONG
+# Mang "dut" sau khi Prepare, truoc Commit
+# Giao dich bi treo o trang thai Pending
+# Sau 30 giay, Recovery Service tu dong rollback
+##########################################################
+
+### 4. Gia lap su co mang
+POST {{Coordinator_Host}}/Transfer/simulate-failure
+Content-Type: application/json
+
+{
+  "fromAccountId": "A001",
+  "toAccountId": "B001",
+  "amount": 10000
+}
+
+### 4a. Kiem tra giao dich pending tai BankA (se thay transaction dang Pending)
+GET {{BankA_Host}}/Bank/pending-transactions
+Accept: application/json
+
+### 4b. Kiem tra giao dich pending tai BankB
+GET {{BankB_Host}}/Bank/pending-transactions
+Accept: application/json
+
+### 4c. DOI 30 GIAY roi chay lai -> Pending se trong (Recovery da rollback)
+GET {{BankA_Host}}/Bank/pending-transactions
+Accept: application/json
+
+### 4d. Kiem tra so du A001 - tien da duoc hoan tra
+GET {{BankA_Host}}/Bank/Balance/A001
+Accept: application/json
+
+##########################################################
+# TEST CASE 5: CHUYEN TIEN GIUA 2 TAI KHOAN KHAC
+# A002 -> B002: 30,000d
+##########################################################
+
+### 5. Chuyen 30,000d tu A002 -> B002
+POST {{Coordinator_Host}}/Transfer
+Content-Type: application/json
+
+{
+  "fromAccountId": "A002",
+  "toAccountId": "B002",
+  "amount": 30000
+}
+
+### 5a. Kiem tra A002 (mong doi: 70,000)
+GET {{BankA_Host}}/Bank/Balance/A002
+Accept: application/json
+
+### 5b. Kiem tra B002 (mong doi: 130,000)
+GET {{BankB_Host}}/Bank/Balance/B002
+Accept: application/json

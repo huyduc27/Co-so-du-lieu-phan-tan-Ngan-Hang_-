@@ -1,4 +1,4 @@
-﻿namespace BankA.Api.Models
+namespace BankA.Api.Models
 {
 
     // Trạng thái của một giao dịch
@@ -16,5 +16,6 @@
         public string AccountId { get; set; } = "";
         public decimal Amount { get; set; }
         public TransactionStatus Status { get; set; } = TransactionStatus.Pending;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

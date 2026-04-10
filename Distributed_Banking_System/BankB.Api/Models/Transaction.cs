@@ -8,5 +8,6 @@ namespace BankB.Api.Models
         public string AccountId { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public TransactionStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

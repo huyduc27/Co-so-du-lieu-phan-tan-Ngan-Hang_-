@@ -1,6 +1,49 @@
-@BankA.Api_HostAddress = http://localhost:5228
+@BankA.Api_HostAddress = https://localhost:7102
 
-GET {{BankA.Api_HostAddress}}/weatherforecast/
+### 1. Xem so du tai khoan A01
+GET {{BankA.Api_HostAddress}}/Bank/Balance/A01
 Accept: application/json
 
-###
+### 2. Xem so du tai khoan A02
+GET {{BankA.Api_HostAddress}}/Bank/Balance/A02
+Accept: application/json
+
+### 3. Prepare - Tao giao dich chuyen 200 tu A01
+POST {{BankA.Api_HostAddress}}/Bank/prepare
+Content-Type: application/json
+
+{
+  "accountId": "A01",
+  "transactionId": "TX001",
+  "amount": 200
+}
+
+### 4. Commit - Xac nhan giao dich
+POST {{BankA.Api_HostAddress}}/Bank/commit
+Content-Type: application/json
+
+{
+  "transactionId": "TX001"
+}
+
+### 5. Rollback - Huy giao dich (test voi transaction khac)
+POST {{BankA.Api_HostAddress}}/Bank/prepare
+Content-Type: application/json
+
+{
+  "accountId": "A01",
+  "transactionId": "TX002",
+  "amount": 300
+}
+
+### 6. Rollback TX002
+POST {{BankA.Api_HostAddress}}/Bank/rollback
+Content-Type: application/json
+
+{
+  "transactionId": "TX002"
+}
+
+### 7. Kiem tra lai so du A01 (phai la 800 sau khi commit TX001)
+GET {{BankA.Api_HostAddress}}/Bank/Balance/A01
+Accept: application/json

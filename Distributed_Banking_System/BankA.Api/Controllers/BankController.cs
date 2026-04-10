@@ -1,4 +1,4 @@
-﻿using BankA.Api.Data;
+using BankA.Api.Data;
 using BankA.Api.Models;
 using BankA.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +54,25 @@ namespace BankA.Api.Controllers
         public IActionResult Rollback([FromBody] TransactionRequest req)
         {
             var response = _bankService.Rollback(req.TransactionId);
+            return response.Success
+                ? Ok(response)
+                : BadRequest(response);
+        }
+
+        // ── GET /Bank/pending-transactions ─────────────
+        [HttpGet("pending-transactions")]
+        public IActionResult GetPendingTransactions()
+        {
+            var pending = _bankService.GetPendingTransactions();
+            return Ok(pending);
+        }
+
+        // ── POST /Bank/refund ──────────────────────────
+        // Hoàn tiền giao dịch đã Committed (phục vụ Recovery)
+        [HttpPost("refund")]
+        public IActionResult Refund([FromBody] TransactionRequest req)
+        {
+            var response = _bankService.Refund(req.TransactionId);
             return response.Success
                 ? Ok(response)
                 : BadRequest(response);

@@ -1,26 +1,18 @@
-using BankB.Api.Data;
 using BankB.Api.Models;
+using BankB.Api.Repositories;
 using BankB.Api.Responses;
 
 namespace BankB.Api.Services
 {
     public class BankService
     {
-        private readonly BankData _bankData;
-        private readonly Dictionary<string, Transaction> _pendingTransactions = new();
+        private readonly IAccountRepository _accountRepo;
+        private readonly ITransactionRepository _transactionRepo;
 
-        public BankService(BankData bankData)
+        public BankService(IAccountRepository accountRepo, ITransactionRepository transactionRepo)
         {
-            _bankData = bankData;
-        }
-
-        private Account? FindAccount(string accountId)
-            => _bankData.Accounts.FirstOrDefault(a => a.AccountId == accountId);
-
-        private Transaction? FindPendingTransaction(string transactionId)
-        {
-            _pendingTransactions.TryGetValue(transactionId, out var tx);
-            return tx?.Status == TransactionStatus.Pending ? tx : null;
+            _accountRepo = accountRepo;
+            _transactionRepo = transactionRepo;
         }
 
         private static BankResponse Fail(string message)
@@ -28,7 +20,7 @@ namespace BankB.Api.Services
 
         public BankResponse GetBalance(string accountId)
         {
-            var account = FindAccount(accountId);
+            var account = _accountRepo.GetById(accountId);
             if (account == null) return Fail("Account not found");
 
             return new BankResponse
@@ -39,24 +31,24 @@ namespace BankB.Api.Services
             };
         }
 
-        // Phase 1: Prepare (Receiving side: check if account exists)
+        // Phase 1: Prepare (Receiving side: check if account exists, record pending)
         public BankResponse Prepare(string accountId, string transactionId, decimal amount)
         {
-            var account = FindAccount(accountId);
+            var account = _accountRepo.GetById(accountId);
             if (account == null) return Fail("Account not found");
 
-            if (_pendingTransactions.ContainsKey(transactionId))
-                return Fail("Transaction already exists");
+            var existingTx = _transactionRepo.GetById(transactionId);
+            if (existingTx != null) return Fail("Transaction already exists");
 
-            // For the receiver, Prepare is essentially checking account validity
-            // We record the pending transaction to process the commit later
-            _pendingTransactions[transactionId] = new Transaction
+            _transactionRepo.Add(new Transaction
             {
                 TransactionId = transactionId,
                 AccountId = accountId,
                 Amount = amount,
                 Status = TransactionStatus.Pending
-            };
+            });
+
+            _transactionRepo.SaveChanges();
 
             return new BankResponse
             {
@@ -69,15 +61,19 @@ namespace BankB.Api.Services
         // Phase 2: Commit (Receiving side: add money)
         public BankResponse Commit(string transactionId)
         {
-            var tx = FindPendingTransaction(transactionId);
+            var tx = _transactionRepo.GetPending(transactionId);
             if (tx == null) return Fail("Transaction not found or not pending");
 
-            var account = FindAccount(tx.AccountId);
+            var account = _accountRepo.GetById(tx.AccountId);
             if (account == null) return Fail("Account not found");
 
             // Complete the transaction: add money
             account.Balance += tx.Amount;
             tx.Status = TransactionStatus.Committed;
+
+            _accountRepo.Update(account);
+            _transactionRepo.Update(tx);
+            _transactionRepo.SaveChanges();
 
             return new BankResponse
             {
@@ -90,14 +86,18 @@ namespace BankB.Api.Services
         // Phase 2: Rollback (Receiving side: discard transaction)
         public BankResponse Rollback(string transactionId)
         {
-            var tx = FindPendingTransaction(transactionId);
+            var tx = _transactionRepo.GetPending(transactionId);
             if (tx == null) return Fail("Transaction not found or not pending");
 
-            var account = FindAccount(tx.AccountId);
+            var account = _accountRepo.GetById(tx.AccountId);
             if (account == null) return Fail("Account not found");
 
-            // Just discard the transaction, no balance change needed as money wasn't added yet
+            // Just discard the transaction, no balance change needed
             tx.Status = TransactionStatus.RolledBack;
+
+            // Update transaction status
+            _transactionRepo.Update(tx);
+            _transactionRepo.SaveChanges();
 
             return new BankResponse
             {
@@ -105,6 +105,12 @@ namespace BankB.Api.Services
                 Message = "Rolled back successfully. Transaction discarded.",
                 Data = new { account.Balance }
             };
+        }
+
+        // Lấy danh sách giao dịch đang Pending (phục vụ Recovery)
+        public List<Transaction> GetPendingTransactions()
+        {
+            return _transactionRepo.GetAllPending();
         }
     }
 }

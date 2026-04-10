@@ -1,11 +1,16 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
 
+var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
 
 // Add Bank services
-builder.Services.AddSingleton<BankB.Api.Data.BankData>();
+builder.Services.AddDbContext<BankB.Api.Data.BankDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("BankBDb")));
+
+builder.Services.AddScoped<BankB.Api.Repositories.IAccountRepository, BankB.Api.Repositories.AccountRepository>();
+builder.Services.AddScoped<BankB.Api.Repositories.ITransactionRepository, BankB.Api.Repositories.TransactionRepository>();
 builder.Services.AddScoped<BankB.Api.Services.BankService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

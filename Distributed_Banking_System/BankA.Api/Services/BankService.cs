@@ -1,42 +1,26 @@
-﻿namespace BankA.Api.Services;
-
-using BankA.Api.Data;
+namespace BankA.Api.Services;
 using BankA.Api.Models;
+using BankA.Api.Repositories;
 using BankA.Api.Response;
 
 public class BankService
 {
-    private readonly BankData _bankData;
-    private readonly Dictionary<string, Transaction> _pendingTransactions = new();
+    private readonly IAccountRepository _accountRepo;
+    private readonly ITransactionRepository _transactionRepo;
 
-    public BankService(BankData bankData)
+    public BankService(IAccountRepository accountRepo, ITransactionRepository transactionRepo)
     {
-        _bankData = bankData;
+        _accountRepo = accountRepo;
+        _transactionRepo = transactionRepo;
     }
-
-    // ── Private Helpers (function) ───────────────────────────────────────
-
-    private Account? FindAccount(string accountId)
-        => _bankData.Accounts.FirstOrDefault(a => a.AccountId == accountId);
-
-    private Transaction? FindPendingTransaction(string transactionId)
-    {
-        _pendingTransactions.TryGetValue(transactionId, out var tx);
-        return tx?.Status == TransactionStatus.Pending ? tx : null;
-    }
-
-    private static BankResponse NotFoundAccount(string message)
-        => new BankResponse { Success = false, Message = message };
 
     private static BankResponse Fail(string message)
         => new BankResponse { Success = false, Message = message };
 
-    // ── Public Methods ────────────────────────────────────────
-
     public BankResponse GetBalance(string accountId)
     {
-        var account = FindAccount(accountId);
-        if (account == null) return NotFoundAccount("Account not found");
+        var account = _accountRepo.GetById(accountId);
+        if (account == null) return Fail("Account not found");
 
         return new BankResponse
         {
@@ -48,23 +32,27 @@ public class BankService
 
     public BankResponse Prepare(string accountId, string transactionId, decimal amount)
     {
-        var account = FindAccount(accountId);
-        if (account == null) return NotFoundAccount("Account not found");
+        var account = _accountRepo.GetById(accountId);
+        if (account == null) return Fail("Account not found");
 
-        if (_pendingTransactions.ContainsKey(transactionId))
-            return Fail("Transaction already exists");
+        var existingTx = _transactionRepo.GetById(transactionId);
+        if (existingTx != null) return Fail("Transaction already exists");
 
         if (account.Balance - account.LockedAmount < amount)
             return Fail("Insufficient balance");
 
         account.LockedAmount += amount;
-        _pendingTransactions[transactionId] = new Transaction
+        _accountRepo.Update(account);
+
+        _transactionRepo.Add(new Transaction
         {
             TransactionId = transactionId,
             AccountId = accountId,
             Amount = amount,
             Status = TransactionStatus.Pending
-        };
+        });
+
+        _transactionRepo.SaveChanges();
 
         return new BankResponse
         {
@@ -76,15 +64,19 @@ public class BankService
 
     public BankResponse Commit(string transactionId)
     {
-        var tx = FindPendingTransaction(transactionId);
+        var tx = _transactionRepo.GetPending(transactionId);
         if (tx == null) return Fail("Transaction not found or not pending");
 
-        var account = FindAccount(tx.AccountId);
-        if (account == null) return NotFoundAccount("Account not found");
+        var account = _accountRepo.GetById(tx.AccountId);
+        if (account == null) return Fail("Account not found");
 
         account.Balance -= tx.Amount;
         account.LockedAmount -= tx.Amount;
         tx.Status = TransactionStatus.Committed;
+
+        _accountRepo.Update(account);
+        _transactionRepo.Update(tx);
+        _transactionRepo.SaveChanges();
 
         return new BankResponse
         {
@@ -96,14 +88,18 @@ public class BankService
 
     public BankResponse Rollback(string transactionId)
     {
-        var tx = FindPendingTransaction(transactionId);
+        var tx = _transactionRepo.GetPending(transactionId);
         if (tx == null) return Fail("Transaction not found or not pending");
 
-        var account = FindAccount(tx.AccountId);
-        if (account == null) return NotFoundAccount("Account not found");
+        var account = _accountRepo.GetById(tx.AccountId);
+        if (account == null) return Fail("Account not found");
 
         account.LockedAmount -= tx.Amount;
         tx.Status = TransactionStatus.RolledBack;
+
+        _accountRepo.Update(account);
+        _transactionRepo.Update(tx);
+        _transactionRepo.SaveChanges();
 
         return new BankResponse
         {
@@ -112,5 +108,36 @@ public class BankService
             Data = new { account.Balance, account.LockedAmount }
         };
     }
-}
 
+    // Lấy danh sách giao dịch đang Pending (phục vụ Recovery)
+    public List<Transaction> GetPendingTransactions()
+    {
+        return _transactionRepo.GetAllPending();
+    }
+
+    // Hoàn tiền giao dịch đã Committed (khi BankB chưa nhận được Commit)
+    public BankResponse Refund(string transactionId)
+    {
+        var tx = _transactionRepo.GetById(transactionId);
+        if (tx == null) return Fail("Transaction not found");
+        if (tx.Status != TransactionStatus.Committed) return Fail("Transaction is not in Committed state");
+
+        var account = _accountRepo.GetById(tx.AccountId);
+        if (account == null) return Fail("Account not found");
+
+        // Hoàn tiền: cộng lại số tiền đã trừ
+        account.Balance += tx.Amount;
+        tx.Status = TransactionStatus.RolledBack;
+
+        _accountRepo.Update(account);
+        _transactionRepo.Update(tx);
+        _transactionRepo.SaveChanges();
+
+        return new BankResponse
+        {
+            Success = true,
+            Message = "Refunded successfully - Đã hoàn tiền giao dịch đã commit",
+            Data = new { account.Balance, account.LockedAmount }
+        };
+    }
+}
