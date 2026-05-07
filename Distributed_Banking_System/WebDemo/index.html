@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Banking - 2PC Demo</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h1>Distributed Banking System <span class="badge">2PC Protocol</span></h1>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span> System Online
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <main class="dashboard-grid">
+            
+            <!-- Bank A Panel -->
+            <section class="glass-panel bank-panel bank-a">
+                <div class="panel-header">
+                    <h2>Bank A</h2>
+                    <span class="port-badge">PORT: 7298</span>
+                </div>
+                <div class="panel-content">
+                    <div class="account-card">
+                        <div class="account-info">
+                            <span class="label">Account ID</span>
+                            <span class="value" id="bankA-id">A001</span>
+                        </div>
+                        <div class="balance-display">
+                            <span class="currency">$</span>
+                            <span class="amount" id="bankA-balance">---</span>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="fetchBalance('A')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Coordinator Panel -->
+            <section class="glass-panel coordinator-panel">
+                <div class="panel-header">
+                    <h2>Coordinator</h2>
+                    <span class="port-badge">PORT: 7041</span>
+                </div>
+                <div class="panel-content">
+                    <form id="transfer-form" class="transfer-form">
+                        <div class="form-group">
+                            <label>From Account (Bank A)</label>
+                            <select id="from-account" class="custom-select">
+                                <option value="A001">A001 - Customer A1</option>
+                                <option value="A002">A002 - Customer A2</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>To Account (Bank B)</label>
+                            <select id="to-account" class="custom-select">
+                                <option value="B001">B001 - Customer B1</option>
+                                <option value="B002">B002 - Customer B2</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount ($)</label>
+                            <input type="number" id="transfer-amount" value="1000" min="1" required>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="btn btn-primary" id="btn-transfer">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                Standard Transfer
+                            </button>
+                            <button type="button" class="btn btn-danger" id="btn-simulate-failure">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                Simulate Network Failure
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Bank B Panel -->
+            <section class="glass-panel bank-panel bank-b">
+                <div class="panel-header">
+                    <h2>Bank B</h2>
+                    <span class="port-badge">PORT: 7016</span>
+                </div>
+                <div class="panel-content">
+                    <div class="account-card">
+                        <div class="account-info">
+                            <span class="label">Account ID</span>
+                            <span class="value" id="bankB-id">B001</span>
+                        </div>
+                        <div class="balance-display">
+                            <span class="currency">$</span>
+                            <span class="amount" id="bankB-balance">---</span>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="fetchBalance('B')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Console / Logs -->
+        <section class="console-section">
+            <div class="console-header">
+                <div class="console-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    System Terminal
+                </div>
+                <div class="console-actions">
+                    <span class="polling-indicator" id="polling-indicator">Polling Recovery Service...</span>
+                    <button class="btn btn-icon" id="btn-clear-logs" title="Clear Logs">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="console-body" id="console-output">
+                <div class="log-entry info">
+                    <span class="timestamp">[SYS]</span> System initialized. Ready to execute transactions.
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
