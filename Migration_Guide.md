@@ -39,7 +39,7 @@ Add-Migration InitialCreate -Project BankB.Api -Context BankB.Api.Data.BankDbCon
 
 ### Lệnh 2: Đẩy Migration xuống Database
 ```powershell
-Update-Database -Project BankB.Api -Context BankB.Api.Data.BankDbContext
+
 ```
 **Giải thích:** EF Core sẽ dựa trên connection string của `BankB.Api` để tạo một Database mới hoàn toàn tên là `BankB_DB`. Tiếp theo, EF Core sẽ tự động insert sẵn 2 tài khoản (B001, B002) với số dư 100,000.
 

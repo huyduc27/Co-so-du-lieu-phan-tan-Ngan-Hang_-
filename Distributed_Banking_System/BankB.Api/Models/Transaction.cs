@@ -9,5 +9,8 @@ namespace BankB.Api.Models
         public decimal Amount { get; set; }
         public TransactionStatus Status { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation property — FK tham chiếu đến Account
+        public Account? Account { get; set; }
     }
 }

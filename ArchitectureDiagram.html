@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ Đồ Kiến Trúc Hệ Thống 2PC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .mermaid {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e1f5fe;
+            border-left: 5px solid #03a9f4;
+            border-radius: 4px;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sơ Đồ Kiến Trúc - Hệ Thống Chuyển Tiền 2PC</h1>
+    
+    <div class="instructions">
+        💡 <b>Mẹo:</b> Để lưu ảnh này lại, bạn có thể click chuột phải vào sơ đồ bên dưới và chọn <b>"Save image as..." (Lưu hình ảnh thành...)</b>, hoặc dùng công cụ chụp màn hình (Snipping Tool).
+    </div>
+
+    <br>
+
+    <!-- Khối chứa code Mermaid -->
+    <div class="mermaid">
+        flowchart TD
+            Client(["🖥️ Client (Postman / UI)"])
+
+            subgraph Coordinator ["⚙️ Coordinator API (Điều phối - Port 5xxx)"]
+                Ctrl["TransferController"]
+                TSvc["TransferService\n(Thực thi 2PC)"]
+                RSvc["RecoveryService\n(Background Worker)"]
+            end
+
+            subgraph BankA ["🏦 Bank A API (Bên gửi - Port 7298)"]
+                ACtrl["BankController"]
+                ASvc["BankService"]
+                DB_A[("💾 SQL Server\n(Bank A DB)")]
+            end
+
+            subgraph BankB ["🏦 Bank B API (Bên nhận - Port 7016)"]
+                BCtrl["BankController"]
+                BSvc["BankService"]
+                DB_B[("💾 SQL Server\n(Bank B DB)")]
+            end
+
+            Client -- "POST /Transfer" --> Ctrl
+            Ctrl --> TSvc
+            
+            TSvc -- "1. PREPARE\n2. COMMIT / ROLLBACK" --> ACtrl
+            TSvc -- "1. PREPARE\n2. COMMIT / ROLLBACK" --> BCtrl
+            
+            RSvc -. "Quét Pending/Timeout\nGửi Rollback/Refund" .-> ACtrl
+            RSvc -. "Quét Pending/Timeout\nGửi Rollback/Refund" .-> BCtrl
+            
+            ACtrl --> ASvc
+            ASvc --> DB_A
+            
+            BCtrl --> BSvc
+            BSvc --> DB_B
+
+            style Coordinator fill:#f0f8ff,stroke:#00509e,stroke-width:2px
+            style BankA fill:#e6ffe6,stroke:#006600,stroke-width:2px
+            style BankB fill:#fff0e6,stroke:#cc5200,stroke-width:2px
+    </div>
+
+    <!-- Script nạp thư viện Mermaid -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

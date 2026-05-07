@@ -17,6 +17,12 @@ namespace BankA.Api.Data
                 e.HasKey(a => a.AccountId);
                 e.Property(a => a.Balance).HasColumnType("decimal(18,2)");
                 e.Property(a => a.LockedAmount).HasColumnType("decimal(18,2)");
+
+                // Quan hệ 1-nhiều: 1 Account có nhiều Transactions
+                e.HasMany(a => a.Transactions)
+                 .WithOne(t => t.Account)
+                 .HasForeignKey(t => t.AccountId)
+                 .OnDelete(DeleteBehavior.Restrict); // Không xóa Account nếu còn Transaction
             });
 
             modelBuilder.Entity<Transaction>(e =>
@@ -32,3 +38,4 @@ namespace BankA.Api.Data
         }
     }
 }
+

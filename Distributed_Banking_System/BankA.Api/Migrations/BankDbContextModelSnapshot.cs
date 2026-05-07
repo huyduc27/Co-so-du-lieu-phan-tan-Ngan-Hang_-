@@ -65,7 +65,7 @@ namespace BankA.Api.Migrations
 
                     b.Property<string>("AccountId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
@@ -78,7 +78,25 @@ namespace BankA.Api.Migrations
 
                     b.HasKey("TransactionId");
 
+                    b.HasIndex("AccountId");
+
                     b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("BankA.Api.Models.Transaction", b =>
+                {
+                    b.HasOne("BankA.Api.Models.Account", "Account")
+                        .WithMany("Transactions")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("BankA.Api.Models.Account", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

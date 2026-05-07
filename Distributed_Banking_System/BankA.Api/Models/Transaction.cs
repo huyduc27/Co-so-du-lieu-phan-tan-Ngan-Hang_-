@@ -17,5 +17,8 @@ namespace BankA.Api.Models
         public decimal Amount { get; set; }
         public TransactionStatus Status { get; set; } = TransactionStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation property — FK tham chiếu đến Account
+        public Account? Account { get; set; }
     }
 }
