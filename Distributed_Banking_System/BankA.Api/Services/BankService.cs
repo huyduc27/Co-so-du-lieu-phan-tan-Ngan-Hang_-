@@ -20,12 +20,12 @@ public class BankService
     public BankResponse GetBalance(string accountId)
     {
         var account = _accountRepo.GetById(accountId);
-        if (account == null) return Fail("Account not found");
+        if (account == null) return Fail("Không tìm thấy tài khoản");
 
         return new BankResponse
         {
             Success = true,
-            Message = "Balance retrieved successfully",
+            Message = "Lấy số dư thành công",
             Data = new { account.AccountId, account.OwnerName, account.Balance }
         };
     }
@@ -33,13 +33,13 @@ public class BankService
     public BankResponse Prepare(string accountId, string transactionId, decimal amount)
     {
         var account = _accountRepo.GetById(accountId);
-        if (account == null) return Fail("Account not found");
+        if (account == null) return Fail("Không tìm thấy tài khoản");
 
         var existingTx = _transactionRepo.GetById(transactionId);
-        if (existingTx != null) return Fail("Transaction already exists");
+        if (existingTx != null) return Fail("Giao dịch đã tồn tại");
 
         if (account.Balance - account.LockedAmount < amount)
-            return Fail("Insufficient balance");
+            return Fail("Số dư không đủ");
 
         account.LockedAmount += amount;
         _accountRepo.Update(account);
@@ -57,7 +57,7 @@ public class BankService
         return new BankResponse
         {
             Success = true,
-            Message = "Prepared successfully",
+            Message = "Chuẩn bị thành công",
             Data = new { account.Balance, account.LockedAmount }
         };
     }
@@ -65,10 +65,10 @@ public class BankService
     public BankResponse Commit(string transactionId)
     {
         var tx = _transactionRepo.GetPending(transactionId);
-        if (tx == null) return Fail("Transaction not found or not pending");
+        if (tx == null) return Fail("Không tìm thấy giao dịch hoặc trạng thái không phải chờ");
 
         var account = _accountRepo.GetById(tx.AccountId);
-        if (account == null) return Fail("Account not found");
+        if (account == null) return Fail("Không tìm thấy tài khoản");
 
         account.Balance -= tx.Amount;
         account.LockedAmount -= tx.Amount;
@@ -81,7 +81,7 @@ public class BankService
         return new BankResponse
         {
             Success = true,
-            Message = "Committed successfully",
+            Message = "Xác nhận thành công",
             Data = new { account.Balance, account.LockedAmount }
         };
     }
@@ -89,10 +89,10 @@ public class BankService
     public BankResponse Rollback(string transactionId)
     {
         var tx = _transactionRepo.GetPending(transactionId);
-        if (tx == null) return Fail("Transaction not found or not pending");
+        if (tx == null) return Fail("Không tìm thấy giao dịch hoặc trạng thái không phải chờ");
 
         var account = _accountRepo.GetById(tx.AccountId);
-        if (account == null) return Fail("Account not found");
+        if (account == null) return Fail("Không tìm thấy tài khoản");
 
         account.LockedAmount -= tx.Amount;
         tx.Status = TransactionStatus.RolledBack;
@@ -104,7 +104,7 @@ public class BankService
         return new BankResponse
         {
             Success = true,
-            Message = "Rolled back successfully",
+            Message = "Hủy giao dịch thành công",
             Data = new { account.Balance, account.LockedAmount }
         };
     }
@@ -119,11 +119,11 @@ public class BankService
     public BankResponse Refund(string transactionId)
     {
         var tx = _transactionRepo.GetById(transactionId);
-        if (tx == null) return Fail("Transaction not found");
-        if (tx.Status != TransactionStatus.Committed) return Fail("Transaction is not in Committed state");
+        if (tx == null) return Fail("Không tìm thấy giao dịch");
+        if (tx.Status != TransactionStatus.Committed) return Fail("Giao dịch chưa được xác nhận");
 
         var account = _accountRepo.GetById(tx.AccountId);
-        if (account == null) return Fail("Account not found");
+        if (account == null) return Fail("Không tìm thấy tài khoản");
 
         // Hoàn tiền: cộng lại số tiền đã trừ
         account.Balance += tx.Amount;

@@ -47,7 +47,7 @@ const fetchBalance = async (bank) => {
         const accountId = bank === 'A' ? els.selectFrom.value : els.selectTo.value;
         const baseUrl = bank === 'A' ? API.BankA : API.BankB;
         
-        log(`Fetching balance for ${bank} (${accountId})...`, 'info');
+        log(`Đang tải số dư của Ngân hàng ${bank} (${accountId})...`, 'info');
         
         const response = await fetch(`${baseUrl}/Bank/Balance/${accountId}`);
         const data = await response.json();
@@ -55,12 +55,12 @@ const fetchBalance = async (bank) => {
         if (response.ok && data.success) {
             const balanceEl = bank === 'A' ? els.bankABalance : els.bankBBalance;
             balanceEl.innerText = formatMoney(data.data.balance);
-            log(`Bank ${bank} Balance: $${formatMoney(data.data.balance)}`, 'success');
+            log(`Số dư Ngân hàng ${bank}: $${formatMoney(data.data.balance)}`, 'success');
         } else {
-            throw new Error(data.message || 'Failed to fetch balance');
+            throw new Error(data.message || 'Không thể lấy số dư');
         }
     } catch (error) {
-        log(`Error fetching Bank ${bank} balance: ${error.message}`, 'error');
+        log(`Lỗi khi lấy số dư Ngân hàng ${bank}: ${error.message}`, 'error');
         const balanceEl = bank === 'A' ? els.bankABalance : els.bankBBalance;
         balanceEl.innerText = 'ERR';
     }
@@ -78,7 +78,7 @@ const executeTransfer = async (simulateFailure = false) => {
     const amount = parseFloat(amountStr);
     
     if (isNaN(amount) || amount <= 0) {
-        log('Invalid transfer amount.', 'error');
+        log('Số tiền chuyển không hợp lệ.', 'error');
         return;
     }
 
@@ -86,7 +86,7 @@ const executeTransfer = async (simulateFailure = false) => {
     const logType = simulateFailure ? 'warning' : 'info';
     
     log(`----------------------------------------`, 'info');
-    log(`Initiating Transfer: $${amount} from ${els.selectFrom.value} to ${els.selectTo.value} ${simulateFailure ? '(SIMULATE FAILURE)' : ''}`, logType);
+    log(`Bắt đầu chuyển khoản: $${amount} từ ${els.selectFrom.value} sang ${els.selectTo.value} ${simulateFailure ? '(GIẢ LẬP LỖI)' : ''}`, logType);
     
     // Disable buttons
     els.btnTransfer.disabled = true;
@@ -109,13 +109,13 @@ const executeTransfer = async (simulateFailure = false) => {
         const data = await response.json();
         
         if (response.ok) {
-            log(`Transfer Status: ${data.status}`, data.status === 'Success' ? 'success' : 'warning');
-            log(`Message: ${data.message}`, 'info');
+            log(`Trạng thái: ${data.status}`, data.status === 'Success' ? 'success' : 'warning');
+            log(`Thông báo: ${data.message}`, 'info');
         } else {
-            throw new Error(data.message || 'Transfer failed');
+            throw new Error(data.message || 'Chuyển khoản thất bại');
         }
     } catch (error) {
-        log(`Transfer Error: ${error.message}`, 'error');
+        log(`Lỗi giao dịch: ${error.message}`, 'error');
     } finally {
         // Re-enable buttons
         els.btnTransfer.disabled = false;
@@ -137,13 +137,13 @@ const pollRecoveryLogs = async () => {
         
         if (data.totalRecoveries > lastRecoveryCount) {
             // New recovery detected!
-            log(`!!! RECOVERY DETECTED !!!`, 'recovery');
+            log(`!!! PHÁT HIỆN TIẾN TRÌNH KHÔI PHỤC !!!`, 'recovery');
             log(data.message, 'recovery');
             
             // Print the latest logs
             const newLogs = data.logs.slice(lastRecoveryCount);
             newLogs.forEach(l => {
-                log(`[Recovery] Transaction: ${l.transactionId} | Status: ${l.recoveryStatus}`, 'warning');
+                log(`[Khôi phục] Giao dịch: ${l.transactionId} | Trạng thái: ${l.recoveryStatus}`, 'warning');
             });
             
             lastRecoveryCount = data.totalRecoveries;
@@ -162,10 +162,10 @@ const clearLogs = async () => {
         await fetch(`${API.Coordinator}/Transfer/recovery-logs`, { method: 'DELETE' });
         lastRecoveryCount = 0;
         els.consoleOutput.innerHTML = '';
-        log('Local console and server recovery logs cleared.', 'success');
+        log('Đã xóa log trên giao diện và log khôi phục trên server.', 'success');
     } catch (error) {
         els.consoleOutput.innerHTML = '';
-        log('Local console cleared.', 'info');
+        log('Đã xóa log trên giao diện.', 'info');
     }
 };
 
@@ -193,7 +193,7 @@ els.selectTo.addEventListener('change', () => {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    log('Frontend WebDemo loaded successfully.', 'success');
+    log('Giao diện WebDemo tải thành công.', 'success');
     fetchAllBalances();
     
     // Start polling recovery logs every 5 seconds
