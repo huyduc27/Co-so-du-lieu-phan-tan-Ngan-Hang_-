@@ -61,17 +61,19 @@
                     <form id="transfer-form" class="transfer-form">
                         <div class="form-group">
                             <label>From Account (Bank A)</label>
-                            <select id="from-account" class="custom-select">
+                            <input type="text" id="from-account" class="custom-select" list="bankA-accounts" value="A001" placeholder="Nhập ID (VD: A001, A999)">
+                            <datalist id="bankA-accounts">
                                 <option value="A001">A001 - Customer A1</option>
                                 <option value="A002">A002 - Customer A2</option>
-                            </select>
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label>To Account (Bank B)</label>
-                            <select id="to-account" class="custom-select">
+                            <input type="text" id="to-account" class="custom-select" list="bankB-accounts" value="B001" placeholder="Nhập ID (VD: B001, B999)">
+                            <datalist id="bankB-accounts">
                                 <option value="B001">B001 - Customer B1</option>
                                 <option value="B002">B002 - Customer B2</option>
-                            </select>
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label>Amount ($)</label>
